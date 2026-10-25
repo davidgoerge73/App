@@ -1,0 +1,40 @@
+name: Build Signed APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:  # عشان تقدر تشغله بإيدك من زرار Run workflow
+
+jobs:
+  build-android:
+    name: Build for Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 1. إعداد الجافا (حل مشكلة الجافا والتحذير بتاعها)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 2. البناء باستخدام Buildozer (الإجراء ده أثبت واستقراره أعلى)
+      # ملاحظة: لو ملف buildozer.spec بتاعك في فولدر تاني غير الـ root، غير الـ workdir
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          command: buildozer android debug
+          workdir: .
+          buildozer_version: stable
+
+      # 3. رفع ملف الـ APK عشان تنزله
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: ${{ steps.buildozer.outputs.filename }}
