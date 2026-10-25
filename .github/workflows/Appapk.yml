@@ -1,0 +1,48 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build for Android
+    # تثبيت إصدار أوبنتو لتجنب مشاكل الترقية إلى 26.04
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # تثبيت متطلبات Buildozer الأساسية على بيئة أوبنتو
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+      # تثبيت Buildozer عبر pip
+      - name: Install Buildozer
+        run: |
+          pip3 install --user --upgrade buildozer Cython==0.29.33 virtualenv
+
+      # تشغيل Buildozer مباشرة (بدون Docker)
+      # ملاحظة: إذا كان buildozer.spec في مجلد فرعي، أضف "cd اسم_المجلد" قبل الأمر
+      - name: Build with Buildozer
+        run: |
+          export PATH=$PATH:~/.local/bin/
+          export APP_ANDROID_ACCEPT_SDK_LICENSE=1
+          export BUILDOZER_WARN_ON_ROOT=0
+          buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
